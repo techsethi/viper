@@ -1,0 +1,12 @@
+#
+# Format for web sites:
+#http://<www.site2test.com>	<slow threshold>	<timeout>  <response code> <string to match - optional>
+#
+#Format for mail servers:
+#smtp:<mail.serveraddress.com>	<slow threshold>	<timeout>
+#
+#
+http://www.timescity.com	15	20	200	<meta name="google-site-verification" content="I0VU3axnOh-aUoEuK2BIsXoFONcNestDIxxSqsmFLF8" />
+http://design.dev.timescity.com	15	20	401
+http://ajajajajajajajajaj.com	15	20
+
