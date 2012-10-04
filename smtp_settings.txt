@@ -6,7 +6,7 @@
 #################
 # SMTP Server Host
 # Put your SMTP host
-SMTPHost = 'nmailer.indiatimes.com'
+SMTPHost = 'cmailer.indiatimes.com'
 
 # cmailer
 # SMTPHost = '192.169.31.110'
@@ -15,7 +15,7 @@ SMTPHost = 'nmailer.indiatimes.com'
 
 #################
 # MAIL Recipient
-Recipient = 'pradeep.sethi@indiatimes.co.in'
+Recipient = 'tc-dev@indiatimes.co.in'
 
 #################
 # Reverse mail (From who has been sended this e-mail)

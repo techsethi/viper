@@ -10,6 +10,7 @@ use Data::Dumper;
 #################################################################
 #             Program  Settings
 #
+my $log_dir = "/opt/viper/logs";
 my $error_log = 'viper_errors.txt';    # File to store errors of program
 my $input_file = 'urls.txt';    # From where program will read WEB Addresses
 my $smtp_file = 'smtp_settings.txt';  # File for SMTP Settings
@@ -33,12 +34,12 @@ print "Script Begin...\nWould log to $output_file\n" if $VERBOSE;
 my ( $smtp_host, $recipient, $reverse_path, @all_addr ) = ();
 tie @all_addr, 'Tie::File', $input_file
   or error("Cant open $input_file to read addresses");
-if ( -e $output_file ) {
-    open( OUT, ">> $output_file" )
+if ( -e "$log_dir/$output_file" ) {
+    open( OUT, ">> $log_dir/$output_file" )
       or error("Cant open exist file $output_file for append");
 }
 else {
-    open( OUT, "> $output_file" )
+    open( OUT, "> $log_dir/$output_file" )
       or error("Cant open new file $output_file for writting");
 }
 my @smtp_settings;
@@ -60,11 +61,11 @@ for (@smtp_settings) {
         $reverse_path = $2 if ( $1 eq 'Reverse' );
     }
 }
-print OUT "\n+" . ( '-' x 84 ) . "+\n";
-print OUT "|", ' ' x 30, "Time: $hour", ' ' x 40, "|\n";
+print OUT "\n+" . ( '-' x 104 ) . "+\n";
+print OUT "|", ' ' x 40, "Time: $hour", ' ' x 50, "|\n";
 print OUT "|", ' ' x 10, 'HOST', ' ' x 37, 'STATUS', ' ' x 7,
-  "RESPONSE            |\n";
-print OUT "+" . ( '-' x 84 ) . "+\n";
+  "RESPONSE CODE         RESPONSE          |\n";
+print OUT "+" . ( '-' x 104 ) . "+\n";
 for ( 0 .. $#all_addr ) {
 
     chop $all_addr[$_] if ( $all_addr[$_] =~ /\s+$/ );
@@ -108,10 +109,12 @@ if ($send_mail) {
     # Begin Compare mail message
     my $msg = <<__END_OF_MAIL__;
 To: $recipient
-Subject: $err_num Error Sites | $localtime .
+Subject: Timescity Viper : $err_num site(s) configured down | [$localtime] 
 $localtime
 $err
 
+See logile on the server for more info. path /opt/viper/logs on analytics server.
+Timescity Production Viper, Ver 0.1
 __END_OF_MAIL__
 
     # End Compare
@@ -127,6 +130,7 @@ else {
     print "Send Mail is OFF\n" if $err_num; # If you do not wish to receive mail
 }
 
+print OUT "+" . ( '-' x 104 ) . "+\n";
 close OUT or error("Unable to close file $output_file");
 print "\nProcess FINISH\n";
 
@@ -149,7 +153,7 @@ sub check_url {                             # subroutine who check given URL
     if ( $res->is_success ) { # Success....all content of page has been received
         my $time = time;      # End timer
         $time = ( $time - $start );    # Result of timer
-        running_message( "web", $target, $time, $response_slow );
+        running_message( "web", $target, $time, $response_slow, $res->{'_rc'} );
     }
     elsif ($res->{'_rc'} == $response_code)
 	{
@@ -188,17 +192,17 @@ sub check_smtp {                       #subroutine to check smtp servers
 }
 
 sub running_message {
-    ( my $type, my $target, my $time, my $response_slow ) = @_;
+    ( my $type, my $target, my $time, my $response_slow, my $rc ) = @_;
     my $out_format;
 
     if ( $response_slow && ( $response_slow <= $time ) ) {
         push( @errors, "Slow response from ($type) $target\: $time seconds" );
-        $out_format = sprintf "| %-4s %-50.50s %-10s %-20s |\n", $type,
-          $target, "SLOW", "Response $time seconds";
+        $out_format = sprintf "| %-4s %-50.50s %-10s %-20s            |\n", $type,
+          $target, "SLOW", "Response $time seconds [$rc]";
     }
     else {
-        $out_format = sprintf "| %-4s %-50.50s %-10s %-20s |\n", $type,
-          $target, "ACCESSED", "Response $time seconds";
+        $out_format = sprintf "| %-4s %-50.50s %-10s %-20s            |\n", $type,
+          $target, "ACCESSED", "Response $time seconds [$rc]";
     }
     print OUT $out_format;    # write to file
     print $out_format;        # print to console
@@ -208,8 +212,8 @@ sub running_match_message {
     ( my $target, my $response_code ) = @_;
     my $out_format;
 
-        $out_format = sprintf "| %-4s %-50.50s %-10s %-20s |\n", "web",
-          $target, "RESPONSE CODE MATCHED", "Response : $response_code";
+        $out_format = sprintf "| %-4s %-50.50s %-10s %-20s     |\n", "web",
+          $target, "RESPONSE CODE MATCHED", "Response : [$response_code]";
     print OUT $out_format;    # write to file
     print $out_format;        # print to console
 }
@@ -217,7 +221,7 @@ sub running_match_message {
 sub down_message {
     ( my $type, my $target, my $rc ) = @_;
 
-    my $out_format = sprintf "| %-4s %-50.50s %-10s %-20s |\n", $type, $target,
+    my $out_format = sprintf "| %-4s %-50.50s %-10s %-20s               |\n", $type, $target,
       "DOWN [$rc] ", " N/A";
     push( @errors, "($type) $target is DOWN [$rc]." )
       or error("Cannot push error for DOWN");
@@ -227,7 +231,7 @@ sub down_message {
 
 sub error {                   # subroutine who print in Error Log
     my $error_msg = shift;
-    open ERR, ">> $error_log" or die "Cannot open log file $error_log : $!\n";
+    open ERR, ">> $log_dir/$error_log" or die "Cannot open log file $log_dir/$error_log : $!\n";
     print ERR "$localtime\: $error_msg : $!\n";
-    close ERR or die "Cannot close log file $error_log : $!\n";
+    close ERR or die "Cannot close log file $log_dir/$error_log : $!\n";
 }
